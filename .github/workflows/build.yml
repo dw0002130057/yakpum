@@ -34,9 +34,9 @@ jobs:
         run: |
           mkdir -p site/data/d
           BASE="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/data"
-          for f in meta idx price pills recall; do curl -fsS "$BASE/$f.json" -o "site/data/$f.json"; done
-          curl -fsS "$BASE/sick.json" -o site/data/sick.json || echo "[]" > site/data/sick.json
-          seq -f "%03g" 0 999 | xargs -P 16 -I{} curl -fsS "$BASE/d/{}.json" -o "site/data/d/{}.json"
+          for f in meta idx price pills recall; do curl -fsS --retry 5 --retry-all-errors "$BASE/$f.json" -o "site/data/$f.json"; done
+          curl -fsS --retry 5 --retry-all-errors "$BASE/sick.json" -o site/data/sick.json || echo "[]" > site/data/sick.json
+          seq -f "%03g" 0 999 | xargs -P 16 -I{} curl -fsS --retry 5 --retry-all-errors "$BASE/d/{}.json" -o "site/data/d/{}.json"
       - name: 공공데이터 받기
         if: ${{ !inputs.site_only }}
         env:
