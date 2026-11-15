@@ -50,17 +50,17 @@ function parse(text) {
   });
   return { total, items };
 }
-async function get(base, params, tries = 4) {
+async function get(base, params, tries = 8) {
   for (let i = 1; ; i++) {
     try {
       calls++;
-      const res = await fetch(url(base, params), { signal: AbortSignal.timeout(120000) });
+      const res = await fetch(url(base, params), { signal: AbortSignal.timeout(300000) });
       const text = await res.text();
       if (!res.ok) throw new Error('HTTP ' + res.status + ' ' + text.slice(0, 200));
       return parse(text);
     } catch (e) {
       if (i >= tries) throw new Error(base.split('/').pop() + ' ' + JSON.stringify(params) + ' → ' + e.message);
-      await sleep(3000 * i);
+      await sleep(10000 * i);
     }
   }
 }
