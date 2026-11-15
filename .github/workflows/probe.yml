@@ -1,0 +1,12 @@
+name: probe
+on: workflow_dispatch
+jobs:
+  p:
+    runs-on: ubuntu-latest
+    steps:
+      - env: { K: "${{ secrets.SERVICE_KEY }}" }
+        run: |
+          B=https://apis.data.go.kr/B551182/diseaseInfoService1
+          for q in "getDissNameCodeList?sickType=1&medTp=1&diseaseType=SICK_CD&searchText=A&numOfRows=10&pageNo=1" "getDissNameCodeList?sickType=1&medTp=1&diseaseType=SICK_NM&searchText=%EC%97%BC&numOfRows=10&pageNo=1" "getDissNameCodeList?sickType=2&medTp=1&diseaseType=SICK_CD&searchText=K21&numOfRows=10&pageNo=1" "getDissNameCodeList?sickType=1&medTp=1&diseaseType=SICK_CD&searchText=A&numOfRows=100&pageNo=1&_type=json"; do
+            echo "== $q"; curl -s --get "$B/${q%%\?*}" --data-urlencode "serviceKey=$K" -d "${q#*\?}" -w "\nHTTP %{http_code}\n" | head -c 1200; echo
+          done
