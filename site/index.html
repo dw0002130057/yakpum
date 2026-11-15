@@ -391,9 +391,11 @@ function durRows(d,kind){ return ((d&&d.DUR&&d.DUR[kind])||[]).map(function(x){ 
 function nz(t){ return String(t||'').replace(/[\s\-·,()\[\]]/g,''); }
 var SICKIX=null;
 function sickOf(d){ return lazy('sick').then(function(rows){
-  if(!SICKIX) SICKIX=rows.filter(function(r){ return r[0].length===3&&r[1]&&!/^기타|상세불명$/.test(r[1])&&nz(r[1]).length>=2; }).map(function(r){ return [r[0],r[1],nz(r[1])]; }).sort(function(a,b){ return b[2].length-a[2].length; });
-  var t=nz(strip(d&&d.EE_DOC_DATA)), out=[], used=[];
-  SICKIX.forEach(function(r){ var i=t.indexOf(r[2]); if(i<0) return; if(used.some(function(u){ return i>=u[0]&&i+r[2].length<=u[1]; })) return; used.push([i,i+r[2].length]); out.push({code:r[0],name:r[1]}); });
+  if(!SICKIX){ SICKIX=[]; rows.forEach(function(r){ if(r[0].length!==3||!r[1]||/^기타|상세불명/.test(r[1])) return; if(r[0]==='R81') return; var n0=nz(r[1]), c=n0.replace(/(질환|병|증|장애)$/,''); if(c.length>=3||(c===n0&&c.length>=2)) SICKIX.push([r[0],r[1],c]); });
+    [['I10','고혈압'],['E11','제2형당뇨'],['E11','인슐린비의존당뇨'],['E78','고지혈'],['E78','이상지질혈'],['E78','고콜레스테롤혈'],['K25','위궤양'],['K26','십이지장궤양'],['K29','위염'],['K21','위식도역류'],['B98','헬리코박터'],['K76','지방간'],['K80','담석'],['M81','골다공'],['F32','우울']].forEach(function(a){ SICKIX.push([a[0],(rows.find(function(r){return r[0]===a[0];})||[0,a[1]])[1],a[1]]); });
+    SICKIX.sort(function(a,b){ return b[2].length-a[2].length; }); }
+  var raw=String(d&&d.EE_DOC_DATA||''), t=nz(strip(raw.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,' $1 ').replace(/title="([^"]*)"/g,'> $1 <'))), out=[], used=[], seen={};
+  SICKIX.forEach(function(r){ var i=t.indexOf(r[2]); if(i<0) return; if(used.some(function(u){ return i>=u[0]&&i+r[2].length<=u[1]; })) return; used.push([i,i+r[2].length]); if(!seen[r[0]]){ seen[r[0]]=1; out.push({code:r[0],name:r[1]}); } });
   return out.sort(function(a,b){ return a.code<b.code?-1:1; }); }).catch(function(){ return []; }); }
 var LOCAL={
   warm:function(){ return lazy('idx').then(function(){ return true; }); },
