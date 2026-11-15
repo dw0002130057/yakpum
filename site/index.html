@@ -390,7 +390,12 @@ function altOf(ingr,seq){ return lazy('idx').then(function(idx){ if(!ingr) retur
 function durRows(d,kind){ return ((d&&d.DUR&&d.DUR[kind])||[]).map(function(x){ return {ITEM_NAME:d.ITEM_NAME,TYPE_NAME:x.t,PROHBT_CONTENT:x.c,NOTIFICATION_DATE:x.d,MIXTURE_ITEM_SEQ:x.ms||'',MIXTURE_ITEM_NAME:x.mn||'',MIXTURE_INGR_KOR_NAME:x.mi||'',CLASS_NAME:d.CLASS_NAME||''}; }); }
 function nz(t){ return String(t||'').replace(/[\s\-·,()\[\]]/g,''); }
 var SICKIX=null;
+// 품목별로 직접 정한 상병코드 (자동 매칭보다 우선)
+var SICK_FIX=[[/펙수클루정40/,['K210']]];
+function kcd(c){ return c.length>3?c.slice(0,3)+'.'+c.slice(3):c; }
 function sickOf(d){ return lazy('sick').then(function(rows){
+  var fix=SICK_FIX.filter(function(f){ return f[0].test(String(d&&d.ITEM_NAME||'')); })[0];
+  if(fix) return fix[1].map(function(c){ var r=rows.find(function(x){ return x[0]===c; })||[c,'']; return {code:kcd(c),name:r[1]}; });
   if(!SICKIX){ SICKIX=[]; rows.forEach(function(r){ if(r[0].length!==3||!r[1]||/^기타|상세불명/.test(r[1])) return; if(r[0]==='R81') return; var n0=nz(r[1]), c=n0.replace(/(질환|병|증|장애)$/,''); if(c.length>=3||(c===n0&&c.length>=2)) SICKIX.push([r[0],r[1],c]); });
     [['I10','고혈압'],['E11','제2형당뇨'],['E11','인슐린비의존당뇨'],['E78','고지혈'],['E78','이상지질혈'],['E78','고콜레스테롤혈'],['K25','위궤양'],['K26','십이지장궤양'],['K29','위염'],['K21','위식도역류'],['B98','헬리코박터'],['K76','지방간'],['K80','담석'],['M81','골다공'],['F32','우울']].forEach(function(a){ SICKIX.push([a[0],(rows.find(function(r){return r[0]===a[0];})||[0,a[1]])[1],a[1]]); });
     SICKIX.sort(function(a,b){ return b[2].length-a[2].length; }); }
