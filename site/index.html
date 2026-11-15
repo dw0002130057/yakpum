@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>약품·급여 조회</title>
+<title>천리안 · 의약품 조회</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" media="print" onload="this.media='all'">
 <style>
@@ -206,13 +206,40 @@
     .dnav { grid-template-columns:repeat(4,1fr); }
     .dhero .pimg { width:92px; height:68px; }
   }
+
+  /* ===== 천리안 고유 디자인 (가로 상단 메뉴 · 남색+호박색) ===== */
+  :root { --bg:#F4F2EE; --br:#E3DED5; --br2:#CFC7BA; --tx:#1B1A2E; --tx2:#4A4760; --tx3:#77738C;
+    --teal:#2B2A6B; --teal2:#1E1D52; --tbg:#ECEBF7; --tbdr:#B9B6E3; --navy:#16153D; --amber:#C77D12; --side:0px; }
+  body { background:var(--bg); }
+  #side { position:sticky; top:0; left:auto; bottom:auto; width:auto; height:auto; display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    background:var(--navy); border:0; padding:10px 28px; overflow:visible; }
+  .brand { border:0; margin:0; padding:0; }
+  .brand .logo { background:#F2A93B; color:var(--navy); border-radius:50%; font-size:20px; }
+  .brand b { color:#fff; font-size:19px; letter-spacing:.08em; }
+  .brand small { color:#B4B2D6; }
+  #nav { display:flex; flex-wrap:wrap; gap:2px; align-items:center; }
+  #nav .grp { display:none; }
+  #nav button { width:auto; color:#D6D4F0; font-size:13.5px; padding:8px 12px; border-radius:6px; margin:0; }
+  #nav button:hover { background:rgba(255,255,255,.08); color:#fff; }
+  #nav button.on { background:#F2A93B; color:var(--navy); }
+  #top { display:none; }
+  main { margin-left:0 !important; padding-top:28px; }
+  .sbox, .card, .dcard, .wrap, .empty { border-radius:6px; box-shadow:none; border-color:var(--br); }
+  .sbox { border-top:4px solid #F2A93B; }
+  .row input, .row select, button[data-act], #btnLogin, .dt, .chip { border-radius:6px; }
+  .dcard .ico, .dhead .ico { border-radius:50%; background:#FBEFD9; }
+  .dcard { border-left:4px solid var(--teal); }
+  .dt.on { box-shadow:none; }
+  .qcell { background:#FAF8F4; }
+  th { background:#F1EEE8; }
+  .hero h1 em { color:#C77D12; }
 </style>
 </head>
 <body>
 
 <div id="app">
   <aside id="side">
-    <div class="brand"><div class="logo">💊</div><div><b>약품·급여 조회</b><small>의약품 정보 · 급여기준 · DUR</small></div></div>
+    <div class="brand"><div class="logo">👁️</div><div><b>천리안</b><small>의약품을 멀리까지 내다보다</small></div></div>
     <div id="nav"></div>
   </aside>
   <div id="top"><span>부산1사무소 약품 조회</span><span id="who"></span></div>
@@ -221,8 +248,8 @@
 
     <section data-tab="home" class="home"><div class="wrapc">
       <div class="hero">
-        <h1>의약품 정보를 한눈에,<br>처방 전에 <em>바로 확인</em></h1>
-        <p>허가 정보, 성분코드·약가, DUR 금기, 회수 소식까지<br>공공데이터에서 바로 찾아 드립니다.</p>
+        <h1>천리 밖 약 정보도<br><em>천리안</em>으로 찾으세요</h1>
+        <p>허가·약가·상병코드·DUR·회수 정보를 공공데이터로 매달 갱신합니다.</p>
       </div>
       <div class="sbox">
         <div class="lbl">통합 검색</div>
