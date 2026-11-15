@@ -13,7 +13,7 @@ const EP = {
   pill: 'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService03/getMdcinGrnIdntfcInfoList03',
   dur: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03',
   recall: 'https://apis.data.go.kr/1471000/MdcinRtrvlSleStpgeInfoService05/getMdcinRtrvlSleStpgelList05',
-  sick: 'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissNameCodeList',
+  sick: 'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissNameCodeList1',
   price: 'https://apis.data.go.kr/B551182/dgamtCrtrInfoService1.2/getDgamtList',
 };
 const DUR_OPS = {
