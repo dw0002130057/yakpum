@@ -65,15 +65,15 @@ async function get(base, params, tries = 4) {
   }
 }
 /** 목록 전체를 쪽(page) 단위로 받음. 동시에 conc개씩 */
-async function all(base, params, per, conc, label) {
+async function all(base, params, per, conc, label, map) {
   const first = await get(base, { ...params, numOfRows: per, pageNo: 1 });
-  const pages = Math.ceil(first.total / per), out = [...first.items];
+  const pages = Math.ceil(first.total / per), out = map ? first.items.map(map) : [...first.items];
   let next = 2;
   async function worker() {
     while (next <= pages) {
       const p = next++;
       const r = await get(base, { ...params, numOfRows: per, pageNo: p });
-      out.push(...r.items);
+      for (const it of r.items) out.push(map ? map(it) : it);
       if (p % 50 === 0) console.log(`  ${label}: ${p}/${pages}쪽`);
     }
   }
@@ -96,7 +96,9 @@ const pills = await all(EP.pill, { type: 'json' }, 500, 4, '낱알');
 const recalls = await all(EP.recall, { type: 'json' }, 500, 2, '회수·판매중지');
 console.log('DUR 받는 중…');
 const dur = {};
-for (const [k, op] of Object.entries(DUR_OPS)) dur[k] = await all(EP.dur + '/' + op, { type: 'json' }, 500, k === 'usjnt' ? 6 : 3, 'DUR ' + k);
+const slim = (r) => ({ seq: String(r.ITEM_SEQ || ''), cls: r.CLASS_NAME || '', t: r.TYPE_NAME || '', c: r.PROHBT_CONTENT || '', d: r.NOTIFICATION_DATE || '',
+  ms: r.MIXTURE_ITEM_SEQ || '', mn: r.MIXTURE_ITEM_NAME || '', mi: r.MIXTURE_INGR_KOR_NAME || '' });
+for (const [k, op] of Object.entries(DUR_OPS)) dur[k] = await all(EP.dur + '/' + op, { type: 'json' }, 500, k === 'usjnt' ? 6 : 3, 'DUR ' + k, slim);
 
 console.log('약가 받는 중 (업체별)…');
 const firmKey = (s) => String(s || '').replace(/\(주\)|㈜|주식회사|\(유\)|유한회사|\(재\)|재단법인|\s/g, '').trim();
@@ -124,11 +126,11 @@ const classBySeq = new Map();
 const durBySeq = new Map();
 for (const [k, rows] of Object.entries(dur)) {
   for (const r of rows) {
-    const seq = String(r.ITEM_SEQ || '');
+    const seq = r.seq;
     if (!seq) continue;
-    if (r.CLASS_NAME && !classBySeq.has(seq)) classBySeq.set(seq, r.CLASS_NAME);
-    const item = { t: r.TYPE_NAME || '', c: r.PROHBT_CONTENT || '', d: r.NOTIFICATION_DATE || '' };
-    if (k === 'usjnt') Object.assign(item, { ms: r.MIXTURE_ITEM_SEQ || '', mn: r.MIXTURE_ITEM_NAME || '', mi: r.MIXTURE_INGR_KOR_NAME || '' });
+    if (r.cls && !classBySeq.has(seq)) classBySeq.set(seq, r.cls);
+    const item = { t: r.t, c: r.c, d: r.d };
+    if (k === 'usjnt') Object.assign(item, { ms: r.ms, mn: r.mn, mi: r.mi });
     if (!durBySeq.has(seq)) durBySeq.set(seq, {});
     (durBySeq.get(seq)[k] ||= []).push(item);
   }
