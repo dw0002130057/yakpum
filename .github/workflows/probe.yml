@@ -6,7 +6,7 @@ jobs:
     steps:
       - env: { K: "${{ secrets.SERVICE_KEY }}" }
         run: |
-          B=https://apis.data.go.kr/B551182/diseaseInfoService1
-          for q in "getDissNameCodeList?sickType=1&medTp=1&diseaseType=SICK_CD&searchText=A&numOfRows=10&pageNo=1" "getDissNameCodeList?sickType=1&medTp=1&diseaseType=SICK_NM&searchText=%EC%97%BC&numOfRows=10&pageNo=1" "getDissNameCodeList?sickType=2&medTp=1&diseaseType=SICK_CD&searchText=K21&numOfRows=10&pageNo=1" "getDissNameCodeList?sickType=1&medTp=1&diseaseType=SICK_CD&searchText=A&numOfRows=100&pageNo=1&_type=json"; do
-            echo "== $q"; curl -s --get "$B/${q%%\?*}" --data-urlencode "serviceKey=$K" -d "${q#*\?}" -w "\nHTTP %{http_code}\n" | head -c 1200; echo
-          done
+          for B in https://apis.data.go.kr/B551182/diseaseInfoService1 https://apis.data.go.kr/B551182/diseaseInfoService; do
+          for op in getDissNameCodeList getDissNameCodeList1 getDissNmCdList getDissNameCodeList2 getDissInfoList; do
+            echo "== $B/$op"; curl -s --get "$B/$op" --data-urlencode "serviceKey=$K" -d "sickType=1&medTp=1&diseaseType=SICK_CD&searchText=K2&numOfRows=3&pageNo=1" -w "\nHTTP %{http_code}\n" | head -c 700; echo
+          done; done
