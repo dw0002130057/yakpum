@@ -497,7 +497,8 @@ function showAlt(edi){ var el=$('cOut'); busy(el);
     el.scrollIntoView({behavior:'smooth',block:'start'}); }).catch(function(e){fail(el,e);}); }
 function showTab(k,go){ CUR.tab=k; document.querySelectorAll('.dt').forEach(function(b){ b.classList.toggle('on',b.dataset.dt===k); }); var el=$('dtBody'); if(!el) return;
   el.innerHTML=tabBody(k); el.classList.remove('fade'); void el.offsetWidth; el.classList.add('fade'); if(go) el.scrollIntoView({behavior:'smooth',block:'start'}); }
-function showDetail(seq){ var el=$('xOut'), cur=document.querySelector('section[data-tab]:not(.hide)'); if(cur&&cur.dataset.tab!=='detail') S.back=cur.dataset.tab;
+var NOHIST=false; if(!history.state) history.replaceState({t:'home'},'');
+function showDetail(seq){ if(!NOHIST) history.pushState({t:'detail',seq:String(seq)},''); var el=$('xOut'), cur=document.querySelector('section[data-tab]:not(.hide)'); if(cur&&cur.dataset.tab!=='detail') S.back=cur.dataset.tab;
   tab('detail'); window.scrollTo({top:0,behavior:'smooth'}); busy(el); CUR={seq:String(seq),tab:'info'};
   api('drugDetail',{seq:String(seq)}).then(function(d){ if(CUR.seq!==String(seq)) return; CUR.d=d; el.innerHTML=drawDetail();
     if(d) api('drugExtra',{seq:String(seq),edi:d.EDI_CODE||'',name:d.ITEM_NAME||'',ingr:d.MAIN_ITEM_INGR||''}).then(function(x){ if(CUR.seq!==String(seq)) return; CUR.x=x; el.innerHTML=drawDetail(); }).catch(function(){ if(CUR.seq!==String(seq)) return; CUR.x={image:'',dur:[],price:[],alt:[]}; el.innerHTML=drawDetail(); });
@@ -540,7 +541,7 @@ ACT.drugSync=function(){ var el=$('aDrug'); function step(restart){ api('adminDr
 function drawCfg(c,msg){ $('aCfg').innerHTML=(msg?'<div class="ok">'+esc(msg)+'</div>':'')+'<div>인증키: <span class="tag '+(c.hasKey?'':'bad')+'">'+(c.hasKey?'등록됨':'미등록')+'</span> · 약품 데이터: '+esc(c.drugSynced||'아직 없음')+' · 낱알 데이터: '+esc(c.pillSynced||'아직 없음')+' · <a href="'+esc(c.sheetUrl)+'" target="_blank">데이터 시트 열기</a></div>'; }
 function drawFavs(){ $('fOut').innerHTML=S.favs.length?'<div class="wrap"><table><tr><th>제품명</th><th></th></tr>'+S.favs.map(function(f){ return '<tr><td>'+esc(f.label)+'</td><td><button class="sm" data-go="'+esc(f.key)+'">검색</button> '+favBtn(f.type,f.key,f.label)+'</td></tr>'; }).join('')+'</table></div>':'<div class="empty">약품 검색 결과에서 ☆를 누르면 여기에 모입니다.</div>'; }
 
-function tab(name){ document.querySelectorAll('section[data-tab]').forEach(function(s){ s.classList.toggle('hide',s.getAttribute('data-tab')!==name); }); document.querySelectorAll('#nav button').forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-nav')===(name==='detail'?'drug':name)); });
+function tab(name){ if(!NOHIST&&name!=='detail'&&!(history.state&&history.state.t===name)) history.pushState({t:name},''); document.querySelectorAll('section[data-tab]').forEach(function(s){ s.classList.toggle('hide',s.getAttribute('data-tab')!==name); }); document.querySelectorAll('#nav button').forEach(function(b){ b.classList.toggle('on',b.getAttribute('data-nav')===(name==='detail'?'drug':name)); });
   if(name==='fav') drawFavs(); if(name==='admin'){ $('login').classList.toggle('hide',!!S.token); $('adminBody').classList.toggle('hide',!S.token); $('btnLogout').classList.toggle('hide',!S.token); if(S.token) api('adminGetConfig').then(function(c){drawCfg(c);}).catch(function(e){fail($('aCfg'),e);}); } }
 
 function showLogin(msg){ S.token=''; $('who').textContent=''; tab('admin'); $('loginMsg').innerHTML=msg?'<div class="err">'+esc(msg)+'</div>':''; }
@@ -563,6 +564,7 @@ document.addEventListener('click',function(ev){ var t=ev.target.closest('button'
   else if(d.fav){ var on=S.favs.some(function(f){return f.type===d.fav&&f.key===d.key;}); S.favs=on?S.favs.filter(function(f){return !(f.type===d.fav&&f.key===d.key);}):S.favs.concat([{type:d.fav,key:d.key,label:d.label}]); saveFavs(); t.textContent=on?'☆':'★'; if(!$('fOut').closest('section').classList.contains('hide')) drawFavs(); }
 });
 document.addEventListener('keydown',function(ev){ if(ev.key!=='Enter') return; if(ev.target.closest('#login')){ $('btnLogin').click(); return; } var s=ev.target.closest('section[data-tab]'); if(s){ var b=s.querySelector('button[data-act]'); if(b) b.click(); } });
+window.addEventListener('popstate',function(e){ var st=e.state||{t:'home'}; NOHIST=true; try{ if(st.seq) showDetail(st.seq); else tab(st.t||'home'); } finally{ NOHIST=false; } });
 </script>
 </body>
 </html>
