@@ -303,6 +303,13 @@
       <div id="mOut"></div>
     </div></section>
 
+    <section data-tab="sick" class="hide"><div class="wrapc">
+      <div class="head"><h2>상병코드</h2><p>상병코드(예: K21) 또는 병명(예: 역류)으로 찾습니다.</p></div>
+      <div class="sbox"><div class="lbl">🩺 상병코드 조회</div>
+      <div class="row"><input id="sQ" placeholder="상병코드 또는 병명"><button data-act="sick">조회</button></div></div>
+      <div id="sOut"></div>
+    </div></section>
+
     <section data-tab="recall" class="hide"><div class="wrapc">
       <div class="head"><h2>회수·판매중지</h2><p>제품명을 비워 두고 조회하면 최근 목록이 나옵니다.</p></div>
       <div class="sbox"><div class="lbl">🚫 회수·판매중지 조회</div>
@@ -334,7 +341,7 @@ var S = { token:'', role:'', favs:[] };
 try { S.favs = JSON.parse(localStorage.getItem('favs') || '[]'); } catch (e) {}
 function saveFavs(){ try { localStorage.setItem('favs', JSON.stringify(S.favs)); } catch (e) {} }
 var NAV = [['자주 쓰는 기능',[['home','🏠','홈'],['drug','🔍','의약품 검색'],['compare','⚖️','약품 비교'],['ai','🤖','AI 상담']]],
-  ['찾아보기',[['price','🧬','성분코드·대체약'],['dur','⚠️','DUR·상호작용'],['pill','💊','낱알 검색'],['recall','🚫','회수·판매중지']]],
+  ['찾아보기',[['sick','🩺','상병코드'],['price','🧬','성분코드·대체약'],['dur','⚠️','DUR·상호작용'],['pill','💊','낱알 검색'],['recall','🚫','회수·판매중지']]],
   ['내 것',[['fav','⭐','즐겨찾기']]]];
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
@@ -369,6 +376,8 @@ var LOCAL={
     return Promise.all([A?detailOf(A.ITEM_SEQ):null,B?detailOf(B.ITEM_SEQ):null]).then(function(ds){ var a=ds[0], b=ds[1], bIngr=b?String(b.MAIN_ITEM_INGR||''):'';
       var taboo=durRows(a,'usjnt').filter(function(x){ return (b&&x.MIXTURE_ITEM_SEQ===String(b.ITEM_SEQ))||x.MIXTURE_ITEM_NAME.indexOf(p.b)>=0||(x.MIXTURE_INGR_KOR_NAME&&bIngr.indexOf(x.MIXTURE_INGR_KOR_NAME)>=0); });
       return {a:a,b:b,taboo:taboo}; }); }); },
+  sick:function(p){ return lazy('sick').then(function(rows){ var q=String(p.q||'').trim(), Q=q.toUpperCase().replace(/[.\s]/g,''); var out=rows.filter(function(r){ return !q||String(r[0]).toUpperCase().indexOf(Q)===0||String(r[1]).indexOf(q)>=0||String(r[2]).toUpperCase().indexOf(q.toUpperCase())>=0; });
+    return {total:out.length,items:out.slice(0,100).map(function(r){ return {code:r[0],name:r[1],eng:r[2]}; })}; }); },
   recall:function(p){ return lazy('recall').then(function(rows){ var k=['PRDUCT','ENTRPS','RTRVL_RESN','RECALL_COMMAND_DATE','ENFRC_YN','RTRVL_CMMND_DT','ITEM_SEQ'];
     var out=rows.filter(function(r){ return (!p.name||String(r[0]).indexOf(p.name)>=0)&&(!p.entp||String(r[1]).indexOf(p.entp)>=0); }).sort(function(a,b){ return String(b[3]||b[5])<String(a[3]||a[5])?-1:1; });
     return {total:out.length,items:out.slice(0,50).map(function(r){ var o={}; k.forEach(function(c,i){ o[c]=r[i]; }); return o; })}; }); },
@@ -474,6 +483,7 @@ var COL = {
   drug:[['ITEM_NAME','제품명'],['ENTP_NAME','업체'],['ETC_OTC_CODE','구분'],['MAIN_ITEM_INGR','주성분'],['CHART','성상'],['STORAGE_METHOD','저장방법'],['EDI_CODE','보험코드'],['ITEM_PERMIT_DATE','허가일']],
   price:[['itmNm','제품명'],['mnfEntpNm','업체'],['gnlNmCd','주성분코드'],['mdsCd','제품코드'],['mxCprc','상한가(원)'],['unit','단위'],['payTpNm','급여'],['spcGnlTpNm','전문/일반'],['injcPthNm','투여'],['adtStaDd','적용일']],
   dur:[['ITEM_NAME','제품명'],['INGR_KOR_NAME','성분'],['MIXTURE_ITEM_NAME','병용금기 제품'],['MIXTURE_INGR_KOR_NAME','병용금기 성분'],['TYPE_NAME','유형'],['PROHBT_CONTENT','내용'],['NOTIFICATION_DATE','고시일']],
+  sick:[['code','상병코드'],['name','병명'],['eng','영문명']],
   recall:[['PRDUCT','제품명'],['ENTRPS','업체'],['RTRVL_RESN','회수 사유'],['RECALL_COMMAND_DATE','회수명령일'],['ENFRC_YN','강제 여부'],['RTRVL_CMMND_DT','회수명령일']],
   pill:[['ITEM_NAME','제품명'],['ENTP_NAME','업체'],['DRUG_SHAPE','모양'],['COLOR_CLASS1','색'],['PRINT_FRONT','각인(앞)'],['PRINT_BACK','각인(뒤)'],['FORM_CODE_NAME','제형'],['EDI_CODE','보험코드']]
 };
@@ -483,6 +493,7 @@ var ACT = {
   drug:function(){ var el=$('dOut'); busy(el); addRecent($('dName').value.trim()); api('drug',{name:$('dName').value.trim(),entp:$('dEntp').value.trim()}).then(function(r){ el.innerHTML=cnt(r.total,'의약품')+drugCards(r.items); r.items.slice(0,5).forEach(function(it){ if(it.ITEM_SEQ) api('drugDetail',{seq:String(it.ITEM_SEQ)}).catch(function(){}); }); }).catch(function(e){fail(el,e);}); },
   price:function(){ var el=$('cOut'); busy(el); api('price',{name:$('cName').value.trim()}).then(function(r){ el.innerHTML=cnt(r.total)+table(r.items,COL.price,function(it){ return it.mdsCd?'<button class="sm" data-alt="'+esc(it.mdsCd)+'">대체약</button>':''; }); }).catch(function(e){fail(el,e);}); },
   dur:function(){ var el=$('uOut'); busy(el); api('dur',{kind:$('uKind').value,name:$('uName').value.trim()}).then(function(r){ el.innerHTML=cnt(r.total)+table(r.items,COL.dur); }).catch(function(e){fail(el,e);}); },
+  sick:function(){ var el=$('sOut'); busy(el); api('sick',{q:$('sQ').value.trim()}).then(function(r){ el.innerHTML=r.total?cnt(r.total)+table(r.items,COL.sick):'<div class="empty">결과가 없습니다. (자료가 아직 없으면 다음 자료 받기 후 나옵니다)</div>'; }).catch(function(e){fail(el,e);}); },
   recall:function(){ var el=$('rOut'); busy(el); api('recall',{name:$('rName').value.trim(),entp:$('rEntp').value.trim()}).then(function(r){ el.innerHTML=cnt(r.total)+table(r.items,COL.recall); }).catch(function(e){fail(el,e);}); },
   pill:function(){ var el=$('pOut'); busy(el); api('pill',{shape:$('pShape').value,color:$('pColor').value,form:$('pForm').value,mark:$('pMark').value.trim(),name:$('pName').value.trim()}).then(function(r){
       if(!r.items.length){ el.innerHTML='<div class="empty">결과가 없습니다. 제품명을 줄여서 다시 검색해 보세요.</div>'; return; }

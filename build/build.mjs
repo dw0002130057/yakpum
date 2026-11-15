@@ -13,6 +13,7 @@ const EP = {
   pill: 'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService03/getMdcinGrnIdntfcInfoList03',
   dur: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03',
   recall: 'https://apis.data.go.kr/1471000/MdcinRtrvlSleStpgeInfoService05/getMdcinRtrvlSleStpgelList05',
+  sick: 'https://apis.data.go.kr/B551182/diseaseInfoService1/getDissNameCodeList',
   price: 'https://apis.data.go.kr/B551182/dgamtCrtrInfoService1.2/getDgamtList',
 };
 const DUR_OPS = {
@@ -170,6 +171,22 @@ await writeFile(OUT + 'pills.json', JSON.stringify(pills.map((p) => pk.map((k) =
 const rk = ['PRDUCT', 'ENTRPS', 'RTRVL_RESN', 'RECALL_COMMAND_DATE', 'ENFRC_YN', 'RTRVL_CMMND_DT', 'ITEM_SEQ'];
 await writeFile(OUT + 'recall.json', JSON.stringify(recalls.map((p) => rk.map((k) => p[k] || ''))));
 
-const meta = { built: new Date().toISOString(), counts: { permits: permits.length, pills: pills.length, recalls: recalls.length, prices: prices.size, dur: Object.fromEntries(Object.entries(dur).map(([k, v]) => [k, v.length])) }, calls, minutes: Math.round((Date.now() - t0) / 60000) };
+// 상병코드 (질병정보서비스) — 실패해도 나머지는 올림
+let sick = [];
+try {
+  const seen = new Map();
+  for (const sickType of [1, 2]) for (const L of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+    const rows = await all(EP.sick, { sickType, medTp: 1, diseaseType: 'SICK_CD', searchText: L }, 1000, 2, `상병 ${sickType}단 ${L}`);
+    for (const it of rows) {
+      const ks = Object.keys(it), cd = it[ks.find((k) => /cd$/i.test(k))] || '', nm = it[ks.find((k) => /nm$/i.test(k) && !/eng/i.test(k))] || '', en = it[ks.find((k) => /eng/i.test(k))] || '';
+      if (cd && !seen.has(cd)) seen.set(cd, [cd, nm, en]);
+    }
+  }
+  sick = [...seen.values()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  console.log('✔ 상병코드', sick.length, '개');
+} catch (e) { console.log('⚠ 상병코드 실패(다음 달 다시 시도):', e.message); }
+await writeFile(OUT + 'sick.json', JSON.stringify(sick));
+
+const meta = { built: new Date().toISOString(), counts: { permits: permits.length, pills: pills.length, recalls: recalls.length, sick: sick.length, prices: prices.size, dur: Object.fromEntries(Object.entries(dur).map(([k, v]) => [k, v.length])) }, calls, minutes: Math.round((Date.now() - t0) / 60000) };
 await writeFile(OUT + 'meta.json', JSON.stringify(meta));
 console.log('완료', JSON.stringify(meta));
