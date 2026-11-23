@@ -43,6 +43,8 @@ jobs:
           SERVICE_KEY: ${{ secrets.SERVICE_KEY }}
           NODE_OPTIONS: --max-old-space-size=12288
         run: node build/build.mjs
+      - name: 대웅제약 상병코드 예시 만들기
+        run: node build/dw.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

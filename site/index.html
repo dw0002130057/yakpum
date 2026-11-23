@@ -331,7 +331,7 @@
     </div></section>
 
     <section data-tab="sick" class="hide"><div class="wrapc">
-      <div class="head"><h2>상병코드</h2><p>상병코드(예: K21) 또는 병명(예: 역류)으로 찾습니다.</p></div>
+      <div class="head"><h2>상병코드</h2><p>상병코드(예: E78) 또는 병명 일부(예: 고지혈, 역류, 당뇨)로 찾습니다. 대웅제약 약 예시는 효능효과 기준 자동 매칭입니다.</p></div>
       <div class="sbox"><div class="lbl">🩺 상병코드 조회</div>
       <div class="row"><input id="sQ" placeholder="상병코드 또는 병명"><button data-act="sick">조회</button></div></div>
       <div id="sOut"></div>
@@ -392,6 +392,8 @@ function nz(t){ return String(t||'').replace(/[\s\-·,()\[\]]/g,''); }
 var SICKIX=null;
 // 품목별로 직접 정한 상병코드 (자동 매칭보다 우선)
 var SICK_FIX=[[/펙수클루정40/,['K210']]];
+// 흔히 쓰는 병명 → 상병코드 (상병코드 검색용)
+var SICK_SYN=[['E78','고지혈'],['E78','이상지질혈'],['E78','고콜레스테롤'],['E78','고중성지방'],['I10','고혈압'],['E11','당뇨'],['E10','당뇨'],['E14','당뇨'],['K21','역류성식도염'],['K21','위식도역류'],['K29','위염'],['K25','위궤양'],['K26','십이지장궤양'],['B98','헬리코박터'],['K76','지방간'],['K73','간염'],['B18','간염'],['F00','치매'],['F03','치매'],['G30','알츠하이머'],['M81','골다공'],['M80','골다공'],['M10','통풍'],['G47','불면'],['F51','불면'],['J30','비염'],['F32','우울'],['F41','불안'],['I63','뇌경색'],['I20','협심'],['I21','심근경색'],['I48','심방세동'],['N40','전립선비대'],['M17','무릎관절염'],['M15','관절염'],['M19','관절염'],['J45','천식'],['J44','만성폐쇄성폐'],['L20','아토피']];
 function kcd(c){ return c.length>3?c.slice(0,3)+'.'+c.slice(3):c; }
 function sickOf(d){ return lazy('sick').then(function(rows){
   var fix=SICK_FIX.filter(function(f){ return f[0].test(String(d&&d.ITEM_NAME||'')); })[0];
@@ -417,8 +419,14 @@ var LOCAL={
     return Promise.all([A?detailOf(A.ITEM_SEQ):null,B?detailOf(B.ITEM_SEQ):null]).then(function(ds){ var a=ds[0], b=ds[1], bIngr=b?String(b.MAIN_ITEM_INGR||''):'';
       var taboo=durRows(a,'usjnt').filter(function(x){ return (b&&x.MIXTURE_ITEM_SEQ===String(b.ITEM_SEQ))||x.MIXTURE_ITEM_NAME.indexOf(p.b)>=0||(x.MIXTURE_INGR_KOR_NAME&&bIngr.indexOf(x.MIXTURE_INGR_KOR_NAME)>=0); });
       return {a:a,b:b,taboo:taboo}; }); }); },
-  sick:function(p){ return lazy('sick').then(function(rows){ var q=String(p.q||'').trim(), Q=q.toUpperCase().replace(/[.\s]/g,''); var out=rows.filter(function(r){ return !q||String(r[0]).toUpperCase().indexOf(Q)===0||String(r[1]).indexOf(q)>=0||String(r[2]).toUpperCase().indexOf(q.toUpperCase())>=0; });
-    return {total:out.length,items:out.slice(0,100).map(function(r){ return {code:r[0],name:r[1],eng:r[2]}; })}; }); },
+  sick:function(p){ return Promise.all([lazy('sick'),lazy('dw').catch(function(){ return {}; })]).then(function(v){ var rows=v[0], dw=v[1];
+    var q=String(p.q||'').trim(), Q=nz(q).toUpperCase().replace(/\./g,''), core=nz(q).replace(/(질환|병|증|장애)$/,''), E=q.toUpperCase();
+    var syn=SICK_SYN.filter(function(a){ return core&&(a[1].indexOf(core)>=0||core.indexOf(a[1])>=0); }).map(function(a){ return a[0]; });
+    var out=rows.filter(function(r){ if(!q) return true; var n=nz(r[1]);
+      return r[0].indexOf(Q)===0||syn.some(function(c){ return r[0].indexOf(c)===0; })||(core.length>=2&&n.indexOf(core)>=0)||(E.length>=3&&String(r[2]).toUpperCase().indexOf(E)>=0); });
+    out.sort(function(a,b){ var sa=syn.some(function(c){ return a[0].indexOf(c)===0; })?0:1, sb=syn.some(function(c){ return b[0].indexOf(c)===0; })?0:1; return sa-sb||(a[0]<b[0]?-1:1); });
+    return {total:out.length,items:out.slice(0,200).map(function(r){ var ex=(dw[r[0].slice(0,3)]||[]).map(function(x){ return x[1]; }); ex=ex.filter(function(x,i){ return ex.indexOf(x)===i; });
+      return {code:kcd(r[0]),name:r[1],dw:ex.slice(0,4).join(', ')+(ex.length>4?' 외 '+(ex.length-4):''),eng:r[2]}; })}; }); },
   recall:function(p){ return lazy('recall').then(function(rows){ var k=['PRDUCT','ENTRPS','RTRVL_RESN','RECALL_COMMAND_DATE','ENFRC_YN','RTRVL_CMMND_DT','ITEM_SEQ'];
     var out=rows.filter(function(r){ return (!p.name||String(r[0]).indexOf(p.name)>=0)&&(!p.entp||String(r[1]).indexOf(p.entp)>=0); }).sort(function(a,b){ return String(b[3]||b[5])<String(a[3]||a[5])?-1:1; });
     return {total:out.length,items:out.slice(0,50).map(function(r){ var o={}; k.forEach(function(c,i){ o[c]=r[i]; }); return o; })}; }); },
@@ -526,7 +534,7 @@ var COL = {
   drug:[['ITEM_NAME','제품명'],['ENTP_NAME','업체'],['ETC_OTC_CODE','구분'],['MAIN_ITEM_INGR','주성분'],['CHART','성상'],['STORAGE_METHOD','저장방법'],['EDI_CODE','보험코드'],['ITEM_PERMIT_DATE','허가일']],
   price:[['itmNm','제품명'],['mnfEntpNm','업체'],['gnlNmCd','주성분코드'],['mdsCd','제품코드'],['mxCprc','상한가(원)'],['unit','단위'],['payTpNm','급여'],['spcGnlTpNm','전문/일반'],['injcPthNm','투여'],['adtStaDd','적용일']],
   dur:[['ITEM_NAME','제품명'],['INGR_KOR_NAME','성분'],['MIXTURE_ITEM_NAME','병용금기 제품'],['MIXTURE_INGR_KOR_NAME','병용금기 성분'],['TYPE_NAME','유형'],['PROHBT_CONTENT','내용'],['NOTIFICATION_DATE','고시일']],
-  sick:[['code','상병코드'],['name','병명'],['eng','영문명']],
+  sick:[['code','상병코드'],['name','병명'],['dw','대웅제약 약 예시'],['eng','영문명']],
   recall:[['PRDUCT','제품명'],['ENTRPS','업체'],['RTRVL_RESN','회수 사유'],['RECALL_COMMAND_DATE','회수명령일'],['ENFRC_YN','강제 여부'],['RTRVL_CMMND_DT','회수명령일']],
   pill:[['ITEM_NAME','제품명'],['ENTP_NAME','업체'],['DRUG_SHAPE','모양'],['COLOR_CLASS1','색'],['PRINT_FRONT','각인(앞)'],['PRINT_BACK','각인(뒤)'],['FORM_CODE_NAME','제형'],['EDI_CODE','보험코드']]
 };
