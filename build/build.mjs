@@ -10,6 +10,7 @@ const SHARDS = 1000;
 
 const EP = {
   permit: 'https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService08/getDrugPrdtPrmsnDtlInq08',
+  plist: 'https://apis.data.go.kr/1471000/DrugPrdtPrmsnInfoService08/getDrugPrdtPrmsnInq08',
   pill: 'https://apis.data.go.kr/1471000/MdcinGrnIdntfcInfoService03/getMdcinGrnIdntfcInfoList03',
   dur: 'https://apis.data.go.kr/1471000/DURPrdlstInfoService03',
   recall: 'https://apis.data.go.kr/1471000/MdcinRtrvlSleStpgeInfoService05/getMdcinRtrvlSleStpgelList05',
@@ -92,6 +93,10 @@ async function pool(list, conc, fn) {
 const t0 = Date.now();
 console.log('허가정보 받는 중…');
 const permits = await all(EP.permit, { type: 'json' }, 500, 4, '허가정보');
+// 허가 목록의 약효분류(PRDUCT_TYPE, 예: [02190]기타의 순환계용약) — 실패해도 계속
+let plist = [];
+try { plist = await all(EP.plist, { type: 'json' }, 500, 4, '약효분류', (r) => ({ seq: String(r.ITEM_SEQ || ''), ty: r.PRDUCT_TYPE || '' })); }
+catch (e) { console.log('⚠ 약효분류 실패:', e.message); }
 console.log('낱알·회수 받는 중…');
 const pills = await all(EP.pill, { type: 'json' }, 500, 4, '낱알');
 const recalls = await all(EP.recall, { type: 'json' }, 500, 2, '회수·판매중지');
@@ -122,6 +127,7 @@ const ediOf = (p) => String(p.EDI_CODE || '').split(',')[0].trim();
 const shardOf = (seq) => String(Number(String(seq).slice(-3)) % SHARDS).padStart(3, '0');
 const pillBySeq = new Map(pills.map((p) => [String(p.ITEM_SEQ), p]));
 const classBySeq = new Map();
+for (const r of plist) { const c = String(r.ty).replace(/^\[[^\]]*\]\s*/, '').trim(); if (r.seq && c) classBySeq.set(r.seq, c); }
 
 // DUR → 제품별
 const durBySeq = new Map();
@@ -136,6 +142,34 @@ for (const [k, rows] of Object.entries(dur)) {
     (durBySeq.get(seq)[k] ||= []).push(item);
   }
 }
+
+// 낱알식별의 분류로 빈칸 채우기
+for (const p of pills) { const seq = String(p.ITEM_SEQ); if (p.CLASS_NAME && !classBySeq.has(seq)) classBySeq.set(seq, p.CLASS_NAME); }
+
+// DUR 성분 기준으로 넓히기: 단일성분 제품에 걸린 DUR(임부금기·노인주의 등)을 같은 성분이 든 모든 제품(복합제 포함)에 붙임
+const ingCodes = (p) => [...String(p.MAIN_ITEM_INGR || '').matchAll(/\[(M\d+)\]([^|]*)/g)].map((m) => [m[1], m[2].trim()]);
+const ING_KINDS = ['preg', 'age', 'elder', 'dose', 'period', 'dup'];
+const ingDur = {}; // kind → 성분코드 → 대표 항목
+for (const p of permits) {
+  const ings = ingCodes(p), dd = durBySeq.get(String(p.ITEM_SEQ));
+  if (!dd || new Set(ings.map((x) => x[0])).size !== 1) continue;
+  for (const k of ING_KINDS) if (dd[k] && dd[k].length) ((ingDur[k] ||= {})[ings[0][0]] ||= { ...dd[k][0], nm: ings[0][1] });
+}
+let widened = 0;
+for (const p of permits) {
+  const seq = String(p.ITEM_SEQ), ings = ingCodes(p);
+  for (const k of ING_KINDS) {
+    const dd = durBySeq.get(seq); if (dd && dd[k] && dd[k].length) continue;
+    const seen = new Set();
+    for (const [code, nm] of ings) {
+      const src = ingDur[k] && ingDur[k][code]; if (!src || seen.has(code)) continue; seen.add(code);
+      if (!durBySeq.has(seq)) durBySeq.set(seq, {});
+      (durBySeq.get(seq)[k] ||= []).push({ t: src.t, c: '(성분 ' + (nm || src.nm) + ' 기준) ' + (src.c || ''), d: src.d });
+      widened++;
+    }
+  }
+}
+console.log('✔ DUR 성분 기준 추가', widened, '건 / 분류', classBySeq.size, '개 제품');
 
 // 검색 목록: [품목코드, 제품명, 업체, 주성분, 전문/일반, 보험코드, 허가일, 상태, 약가, 분류]
 const idx = permits.map((p) => {
