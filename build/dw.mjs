@@ -4,7 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 const D = new URL('../site/data/', import.meta.url).pathname;
 const rd = async (f) => JSON.parse(await readFile(D + f, 'utf8'));
 const idx = await rd('idx.json'), sick = await rd('sick.json').catch(() => []);
-const FIX = [[/펙수클루정40/, ['K21']]];
+const FIX = [[/펙수클루정40/, ['K210']]];
 const SYN = [['I10','고혈압'],['E11','제2형당뇨'],['E11','인슐린비의존당뇨'],['E78','고지혈'],['E78','이상지질혈'],['E78','고콜레스테롤혈'],['K25','위궤양'],['K26','십이지장궤양'],['K29','위염'],['K21','위식도역류'],['B98','헬리코박터'],['K76','지방간'],['K80','담석'],['M81','골다공'],['F32','우울']];
 const nz = (t) => String(t || '').replace(/[\s\-·,()\[\]]/g, '');
 const dec = (s) => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
@@ -27,7 +27,7 @@ let n = 0;
 for (const r of idx) {
   if (!/대웅제약/.test(r[2]) || (r[7] && r[7] !== '정상')) continue;
   const d = (await shard(r[0]))[r[0]]; if (!d) continue; n++;
-  for (const cd of codesOf(d)) (map[cd] ||= []).push([r[0], r[1].replace(/\(.*$/, '')]);
+  for (const cd of codesOf(d)) (map[cd] ||= []).push([r[0], r[1].replace(/\(.*$/, ''), r[8] || 0]);
 }
 await writeFile(D + 'dw.json', JSON.stringify(map));
 console.log('✔ 대웅제약', n, '품목 →', Object.keys(map).length, '개 상병코드');
