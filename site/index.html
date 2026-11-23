@@ -458,7 +458,9 @@ function table(items, cols, extra){
 function eeShort(d){ var raw=String(d&&d.EE_DOC_DATA||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'\n$1\n').replace(/title="([^"]*)"/g,'>\n$1\n<');
   var L=raw.split(/\n/).map(function(x){ return strip(x).replace(/^[-·•*\s]*(\(?\d+[).]|[가-하][.)])?\s*/,'').trim(); }).filter(function(x){ return x&&x!=='효능효과'&&!/^\d[\d,\s]*(mg|밀리그램)$/i.test(x); });
   var t=L.join(' · '); return t.length>90?t.slice(0,90)+'…':t; }
-function fillEE(){ [].slice.call(document.querySelectorAll('.eeS:empty'),0,40).forEach(function(el){ el.textContent=' '; detailOf(el.getAttribute('data-seq')).then(function(d){ var t=eeShort(d); el.textContent=t?'💡 '+t:''; }).catch(function(){ el.textContent=''; }); }); }
+function fillEE(){ [].slice.call(document.querySelectorAll('.eeS:empty'),0,40).forEach(function(el){ el.textContent=' '; detailOf(el.getAttribute('data-seq')).then(function(d){ var t=eeShort(d); el.textContent=t?'💡 '+t:''; var tg=el.parentNode.querySelector('.tags'), add=''; if(d&&d.CLASS_NAME) add+='<span class="tag gray">'+esc(d.CLASS_NAME)+'</span>';
+        Object.keys(DUR_LABEL).forEach(function(k){ if(d&&d.DUR&&d.DUR[k]&&d.DUR[k].length) add+='<span class="tag bad">'+esc(DUR_LABEL[k])+'</span>'; });
+        if(tg&&add){ var f=tg.querySelector('.tag.blue'); if(f) f.insertAdjacentHTML('afterend',add); else tg.insertAdjacentHTML('afterbegin',add); } }).catch(function(){ el.textContent=''; }); }); }
 function drugCards(items){ setTimeout(fillEE,0);
   if(!items||!items.length) return '<div class="empty">결과가 없습니다. 제품명을 줄여서 다시 검색해 보세요.</div>';
   return items.map(function(it){
