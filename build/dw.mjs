@@ -30,4 +30,5 @@ for (const r of idx) {
   for (const cd of codesOf(d)) (map[cd] ||= []).push([r[0], r[1].replace(/\(.*$/, ''), r[8] || 0]);
 }
 await writeFile(D + 'dw.json', JSON.stringify(map));
+const meta = await rd('meta.json'); meta.dw = Date.now(); await writeFile(D + 'meta.json', JSON.stringify(meta));
 console.log('✔ 대웅제약', n, '품목 →', Object.keys(map).length, '개 상병코드');

@@ -379,7 +379,7 @@ function api(action,p){ var k=action+'|'+JSON.stringify(p||{}); if(action.indexO
 /* ---------- 미리 만든 자료 파일 읽기 (서버 없이 브라우저에서 바로 찾음) ---------- */
 var DATA={shard:{}};
 function loadMeta(){ return DATA.metaP||(DATA.metaP=fetch('data/meta.json',{cache:'no-cache'}).then(function(r){ if(!r.ok) throw new Error('자료가 아직 준비되지 않았습니다.'); return r.json(); }).then(function(m){ DATA.meta=m; var f=$('dataDate'); if(f) f.textContent=' · 자료 기준 '+m.built.slice(0,10).replace(/-/g,'.'); return m; })); }
-function getJSON(path){ return loadMeta().then(function(m){ return fetch('data/'+path+'?v='+encodeURIComponent(m.built)); }).then(function(r){ if(!r.ok) throw new Error('자료를 불러오지 못했습니다 ('+r.status+')'); return r.json(); }); }
+function getJSON(path){ return loadMeta().then(function(m){ return fetch('data/'+path+'?v='+encodeURIComponent(m.built+(path==='dw.json'&&m.dw?'.'+m.dw:''))); }).then(function(r){ if(!r.ok) throw new Error('자료를 불러오지 못했습니다 ('+r.status+')'); return r.json(); }); }
 function lazy(name){ return DATA[name]||(DATA[name]=getJSON(name+'.json')); }
 function shard(seq){ var k=String(Number(String(seq).slice(-3))%1000); while(k.length<3) k='0'+k; return DATA.shard[k]||(DATA.shard[k]=getJSON('d/'+k+'.json')); }
 function detailOf(seq){ return shard(seq).then(function(s){ return s[String(seq)]||null; }); }
