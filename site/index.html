@@ -331,7 +331,7 @@
     </div></section>
 
     <section data-tab="sick" class="hide"><div class="wrapc">
-      <div class="head"><h2>상병코드</h2><p>상병코드(예: E78) 또는 병명 일부(예: 고지혈, 역류, 당뇨)로 찾습니다. 대웅제약 약 예시는 효능효과 기준 자동 매칭입니다.</p></div>
+      <div class="head"><h2>상병코드</h2><p>상병코드(예: E78) 또는 병명 일부(예: 고지혈, 역류, 당뇨)로 찾습니다. 여러 개는 띄어 쓰면 한 번에 찾습니다(예: 고혈압 고지혈증 당뇨). 대웅제약 약 예시는 효능효과 기준 자동 매칭입니다.</p></div>
       <div class="sbox"><div class="lbl">🩺 상병코드 조회</div>
       <div class="row"><input id="sQ" placeholder="상병코드 또는 병명"><button data-act="sick">조회</button></div></div>
       <div id="sOut"></div>
@@ -420,10 +420,12 @@ var LOCAL={
       var taboo=durRows(a,'usjnt').filter(function(x){ return (b&&x.MIXTURE_ITEM_SEQ===String(b.ITEM_SEQ))||x.MIXTURE_ITEM_NAME.indexOf(p.b)>=0||(x.MIXTURE_INGR_KOR_NAME&&bIngr.indexOf(x.MIXTURE_INGR_KOR_NAME)>=0); });
       return {a:a,b:b,taboo:taboo}; }); }); },
   sick:function(p){ return Promise.all([lazy('sick'),lazy('dw').catch(function(){ return {}; })]).then(function(v){ var rows=v[0], dw=v[1];
-    var q=String(p.q||'').trim(), Q=nz(q).toUpperCase().replace(/\./g,''), core=nz(q).replace(/(질환|병|증|장애)$/,''), E=q.toUpperCase();
-    var syn=SICK_SYN.filter(function(a){ return core&&(a[1].indexOf(core)>=0||core.indexOf(a[1])>=0); }).map(function(a){ return a[0]; });
+    var q=String(p.q||'').trim(), E=q.toUpperCase(), syn=[];
+    var T=q.split(/[\s,/+]+/).filter(Boolean).map(function(w){ var c=nz(w).replace(/(질환|병|증|장애)$/,'');
+      SICK_SYN.forEach(function(a){ if(c&&(a[1].indexOf(c)>=0||c.indexOf(a[1])>=0)&&syn.indexOf(a[0])<0) syn.push(a[0]); });
+      return {Q:nz(w).toUpperCase().replace(/\./g,''),core:c}; });
     var out=rows.filter(function(r){ if(!q) return true; var n=nz(r[1]);
-      return r[0].indexOf(Q)===0||syn.some(function(c){ return r[0].indexOf(c)===0; })||(core.length>=2&&n.indexOf(core)>=0)||(E.length>=3&&String(r[2]).toUpperCase().indexOf(E)>=0); });
+      return syn.some(function(c){ return r[0].indexOf(c)===0; })||(E.length>=3&&String(r[2]).toUpperCase().indexOf(E)>=0)||T.some(function(t){ return r[0].indexOf(t.Q)===0||(t.core.length>=2&&n.indexOf(t.core)>=0); }); });
     out.sort(function(a,b){ var sa=syn.some(function(c){ return a[0].indexOf(c)===0; })?0:1, sb=syn.some(function(c){ return b[0].indexOf(c)===0; })?0:1; return sa-sb||(a[0]<b[0]?-1:1); });
     return {total:out.length,items:out.slice(0,200).map(function(r){ var c3=r[0].slice(0,3), src=r[0].length>3?(dw[r[0]]||[]).map(function(x){ return [x[0],x[1],1e9]; }).concat(dw[c3]||[]):Object.keys(dw).filter(function(k){ return k.indexOf(c3)===0; }).reduce(function(a,k){ return a.concat(dw[k]); },[]);
       src=src.slice().sort(function(a,b){ return (b[2]>0)-(a[2]>0); }); var ex=[]; src.forEach(function(x){ var br=String(x[1]).replace(/밀리그[램람]/g,'mg').replace(/마이크로그램/g,'μg'); if(ex.indexOf(br)<0) ex.push(br); });
