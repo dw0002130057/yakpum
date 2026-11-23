@@ -384,6 +384,7 @@ function getJSON(path){ return loadMeta().then(function(m){ return fetch('data/'
 function lazy(name){ return DATA[name]||(DATA[name]=getJSON(name+'.json')); }
 function shard(seq){ var k=String(Number(String(seq).slice(-3))%1000); while(k.length<3) k='0'+k; return DATA.shard[k]||(DATA.shard[k]=getJSON('d/'+k+'.json')); }
 function detailOf(seq){ return shard(seq).then(function(s){ return s[String(seq)]||null; }); }
+function ingTxt(t){ var a=[]; strip(t).replace(/\[M\d+\]/g,'').split('|').forEach(function(x){ x=x.trim(); if(x&&a.indexOf(x)<0) a.push(x); }); return a.join(', '); }
 function I(r){ return {ITEM_SEQ:r[0],ITEM_NAME:r[1],ENTP_NAME:r[2],MAIN_ITEM_INGR:r[3],ETC_OTC_CODE:r[4],EDI_CODE:r[5],ITEM_PERMIT_DATE:r[6],CANCEL_NAME:r[7],PRICE:r[8]||'',CLASS_NAME:r[9]||''}; }
 function okFirst(a,b){ return (a.CANCEL_NAME==='정상'?0:1)-(b.CANCEL_NAME==='정상'?0:1); }
 function findDrugs(name,entp){ return lazy('idx').then(function(idx){ var out=[]; idx.forEach(function(r){ if(name&&r[1].indexOf(name)<0) return; if(entp&&r[2].indexOf(entp)<0) return; out.push(I(r)); }); return out.sort(okFirst); }); }
@@ -452,7 +453,7 @@ function table(items, cols, extra){
   var use = cols.filter(function(c){ return items.some(function(it){ return it[c[0]]!=null && it[c[0]]!==''; }); });
   if(!use.length) use = Object.keys(items[0]).slice(0,8).map(function(k){ return [k,k]; });
   var h='<div class="wrap"><table><tr>'+use.map(function(c){return '<th>'+esc(c[1])+'</th>';}).join('')+(extra?'<th></th>':'')+'</tr>';
-  items.forEach(function(it,i){ h+='<tr>'+use.map(function(c){ var v=strip(it[c[0]]); if(v.length>160) v=v.slice(0,160)+'…'; return '<td>'+esc(v)+'</td>'; }).join('')+(extra?'<td>'+extra(it,i)+'</td>':'')+'</tr>'; });
+  items.forEach(function(it,i){ h+='<tr>'+use.map(function(c){ var v=c[0]==='MAIN_ITEM_INGR'?ingTxt(it[c[0]]):strip(it[c[0]]).replace(/\[M\d+\]/g,''); if(v.length>160) v=v.slice(0,160)+'…'; return '<td>'+esc(v)+'</td>'; }).join('')+(extra?'<td>'+extra(it,i)+'</td>':'')+'</tr>'; });
   return h+'</table></div>';
 }
 function eeShort(d){ var raw=String(d&&d.EE_DOC_DATA||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'\n$1\n').replace(/title="([^"]*)"/g,'>\n$1\n<');
@@ -469,7 +470,7 @@ function drugCards(items){ setTimeout(fillEE,0);
     if(it.PRICE) tags.push('<span class="tag">'+won(it.PRICE)+'</span>');
     if(it.ITEM_PERMIT_DATE) tags.push('<span class="tag gray">허가 '+esc(it.ITEM_PERMIT_DATE)+'</span>');
     if(it.CANCEL_NAME && it.CANCEL_NAME!=='정상') tags.push('<span class="tag bad">'+esc(it.CANCEL_NAME)+'</span>');
-    return '<div class="dcard" data-seq="'+esc(it.ITEM_SEQ)+'"><div class="ico">💊</div><div class="bd"><div class="nm">'+esc(it.ITEM_NAME)+'</div><div class="en">'+esc(it.ENTP_NAME)+'</div>'+(it.MAIN_ITEM_INGR?'<div class="ing">'+esc(strip(it.MAIN_ITEM_INGR))+'</div>':'')+'<div class="eeS" data-seq="'+esc(it.ITEM_SEQ)+'"></div><div class="tags">'+tags.join('')+'</div>'+'<div class="more">상세 정보 보기 →</div></div>'+favBtn('drug',it.ITEM_NAME,it.ITEM_NAME)+'</div>';
+    return '<div class="dcard" data-seq="'+esc(it.ITEM_SEQ)+'"><div class="ico">💊</div><div class="bd"><div class="nm">'+esc(it.ITEM_NAME)+'</div><div class="en">'+esc(it.ENTP_NAME)+'</div>'+(it.MAIN_ITEM_INGR?'<div class="ing">'+esc(ingTxt(it.MAIN_ITEM_INGR))+'</div>':'')+'<div class="eeS" data-seq="'+esc(it.ITEM_SEQ)+'"></div><div class="tags">'+tags.join('')+'</div>'+'<div class="more">상세 정보 보기 →</div></div>'+favBtn('drug',it.ITEM_NAME,it.ITEM_NAME)+'</div>';
   }).join('');
 }
 /* ---------- 제품 상세 (ARGOS 구성: 핵심정보 + 항목 탭, 같은 창에서 이동) ---------- */
@@ -501,7 +502,7 @@ function drawDetail(){
   if(d.CANCEL_NAME&&d.CANCEL_NAME!=='정상') tags.push('<span class="tag bad">'+esc(d.CANCEL_NAME)+'</span>');
   var wait='<span class="ld">불러오는 중</span>';
   var q=[['구분',esc(d.ETC_OTC_CODE),'info'],['업체명',esc(d.ENTP_NAME),'info'],['보험정보',x?(price?won(price.mxCprc)+' <small>('+fmtD(price.adtStaDd)+')</small>':'비급여·정보 없음'):wait,'price'],['분류',x?esc(cls||'-'):wait,'info'],
-    ['ATC 코드',esc(d.ATC_CODE||'-'),'info'],['성분 및 함량',esc(strip(d.MAIN_INGR_ENG||d.MAIN_ITEM_INGR)),'info'],['대체가능의약품',x?x.alt.length+'건':wait,'alt'],['DUR',x?durN+'건':wait,'dur'],['상병코드',x?(x.sick&&x.sick.length?esc(x.sick.slice(0,3).map(function(c){return c.code;}).join(', '))+(x.sick.length>3?' 외 '+(x.sick.length-3):''):'-'):wait,'sick']];
+    ['ATC 코드',esc(d.ATC_CODE||'-'),'info'],['성분 및 함량',esc(d.MAIN_INGR_ENG?strip(d.MAIN_INGR_ENG):ingTxt(d.MAIN_ITEM_INGR)),'info'],['대체가능의약품',x?x.alt.length+'건':wait,'alt'],['DUR',x?durN+'건':wait,'dur'],['상병코드',x?(x.sick&&x.sick.length?esc(x.sick.slice(0,3).map(function(c){return c.code;}).join(', '))+(x.sick.length>3?' 외 '+(x.sick.length-3):''):'-'):wait,'sick']];
   return '<div class="card dhero"><div class="pimg">'+(x&&x.image?'<img src="'+esc(x.image)+'" alt="">':'<span>💊</span>')+'</div><div class="dinfo"><div class="nm">'+esc(d.ITEM_NAME)+'</div><div class="en">'+esc(d.ENTP_NAME)+'</div><div class="tags">'+tags.join('')+'</div></div>'+favBtn('drug',d.ITEM_NAME,d.ITEM_NAME)+'</div>'
    +'<div class="card qpanel"><div class="qt">제품 핵심정보 <small>칸을 누르면 해당 항목으로 이동합니다</small></div><div class="qgrid">'+q.map(function(c){ return '<button class="qcell" data-dt="'+c[2]+'"><span class="ql">'+c[0]+'</span><span class="qv">'+(c[1]||'-')+'</span></button>'; }).join('')+'</div></div>'
    +'<div class="dnav">'+DT.map(function(t){ return '<button class="dt'+(CUR.tab===t[0]?' on':'')+'" data-dt="'+t[0]+'">'+t[1]+'</button>'; }).join('')+'</div>'
