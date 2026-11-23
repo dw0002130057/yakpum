@@ -1,8 +1,9 @@
-// 대웅제약 품목 → 상병코드(3단) 목록 만들기: site/data/dw.json  { "E78": [[품목코드, 제품명], ...] }
+// 월별약가표(build/dw-products.json, 보험코드→제품명)에 있는 DW 제품만 → 상병코드(3단) 목록 만들기: site/data/dw.json  { "E78": [[품목코드, 제품명], ...] }
 // 천리안 상세화면의 상병코드 자동매칭(index.html sickOf)과 같은 규칙
 import { readFile, writeFile } from 'node:fs/promises';
 const D = new URL('../site/data/', import.meta.url).pathname;
 const rd = async (f) => JSON.parse(await readFile(D + f, 'utf8'));
+const LIST = JSON.parse(await readFile(new URL('./dw-products.json', import.meta.url), 'utf8'));
 const idx = await rd('idx.json'), sick = await rd('sick.json').catch(() => []);
 const FIX = [[/펙수클루정40/, ['K210']]];
 const SYN = [['I10','고혈압'],['E11','제2형당뇨'],['E11','인슐린비의존당뇨'],['E78','고지혈'],['E78','이상지질혈'],['E78','고콜레스테롤혈'],['K25','위궤양'],['K26','십이지장궤양'],['K29','위염'],['K21','위식도역류'],['B98','헬리코박터'],['K76','지방간'],['K80','담석'],['M81','골다공'],['F32','우울']];
@@ -23,12 +24,14 @@ const codesOf = (d) => {
 const shardCache = new Map();
 const shard = async (seq) => { const k = String(Number(String(seq).slice(-3)) % 1000).padStart(3, '0'); if (!shardCache.has(k)) shardCache.set(k, await rd('d/' + k + '.json')); return shardCache.get(k); };
 const map = {};
-let n = 0;
+let n = 0; const found = new Set();
 for (const r of idx) {
-  if (!/대웅제약/.test(r[2]) || (r[7] && r[7] !== '정상')) continue;
+  const edis = String(r[5] || '').split(/[,\s]+/).filter((e) => LIST[e]);
+  if (!edis.length) continue; edis.forEach((e) => found.add(e));
   const d = (await shard(r[0]))[r[0]]; if (!d) continue; n++;
   for (const cd of codesOf(d)) (map[cd] ||= []).push([r[0], r[1].replace(/\(.*$/, ''), r[8] || 0]);
 }
 await writeFile(D + 'dw.json', JSON.stringify(map));
 const meta = await rd('meta.json'); meta.dw = Date.now(); await writeFile(D + 'meta.json', JSON.stringify(meta));
-console.log('✔ 대웅제약', n, '품목 →', Object.keys(map).length, '개 상병코드');
+console.log('✔ 약가표', Object.keys(LIST).length, '개 중', found.size, '개 보험코드 찾음, 못 찾음:', Object.keys(LIST).filter((e) => !found.has(e)).map((e) => LIST[e]).join(' | '));
+console.log('✔ DW 제품', n, '품목 →', Object.keys(map).length, '개 상병코드');

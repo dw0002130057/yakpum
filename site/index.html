@@ -332,7 +332,7 @@
     </div></section>
 
     <section data-tab="sick" class="hide"><div class="wrapc">
-      <div class="head"><h2>상병코드</h2><p>상병코드(예: E78) 또는 병명 일부(예: 고지혈, 역류, 당뇨)로 찾습니다. 여러 개는 띄어 쓰면 한 번에 찾습니다(예: 고혈압 고지혈증 당뇨). 대웅제약 약 예시는 효능효과 기준 자동 매칭입니다.</p></div>
+      <div class="head"><h2>상병코드</h2><p>상병코드(예: E78) 또는 병명 일부(예: 고지혈, 역류, 당뇨)로 찾습니다. 여러 개는 띄어 쓰면 한 번에 찾습니다(예: 고혈압 고지혈증 당뇨). DW 제품은 월별 약가표 제품 중 효능효과로 자동 매칭한 것입니다.</p></div>
       <div class="sbox"><div class="lbl">🩺 상병코드 조회</div>
       <div class="row"><input id="sQ" placeholder="상병코드 또는 병명"><button data-act="sick">조회</button></div></div>
       <div id="sOut"></div>
@@ -542,7 +542,7 @@ var COL = {
   drug:[['ITEM_NAME','제품명'],['ENTP_NAME','업체'],['ETC_OTC_CODE','구분'],['MAIN_ITEM_INGR','주성분'],['CHART','성상'],['STORAGE_METHOD','저장방법'],['EDI_CODE','보험코드'],['ITEM_PERMIT_DATE','허가일']],
   price:[['itmNm','제품명'],['mnfEntpNm','업체'],['gnlNmCd','주성분코드'],['mdsCd','제품코드'],['mxCprc','상한가(원)'],['unit','단위'],['payTpNm','급여'],['spcGnlTpNm','전문/일반'],['injcPthNm','투여'],['adtStaDd','적용일']],
   dur:[['ITEM_NAME','제품명'],['INGR_KOR_NAME','성분'],['MIXTURE_ITEM_NAME','병용금기 제품'],['MIXTURE_INGR_KOR_NAME','병용금기 성분'],['TYPE_NAME','유형'],['PROHBT_CONTENT','내용'],['NOTIFICATION_DATE','고시일']],
-  sick:[['code','상병코드'],['name','병명'],['dw','대웅제약 약 예시'],['eng','영문명']],
+  sick:[['code','상병코드'],['name','병명'],['dw','DW 제품'],['eng','영문명']],
   recall:[['PRDUCT','제품명'],['ENTRPS','업체'],['RTRVL_RESN','회수 사유'],['RECALL_COMMAND_DATE','회수명령일'],['ENFRC_YN','강제 여부'],['RTRVL_CMMND_DT','회수명령일']],
   pill:[['ITEM_NAME','제품명'],['ENTP_NAME','업체'],['DRUG_SHAPE','모양'],['COLOR_CLASS1','색'],['PRINT_FRONT','각인(앞)'],['PRINT_BACK','각인(뒤)'],['FORM_CODE_NAME','제형'],['EDI_CODE','보험코드']]
 };
