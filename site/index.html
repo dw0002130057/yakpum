@@ -233,6 +233,7 @@
   .qcell { background:#FAF8F4; }
   th { background:#F1EEE8; }
   .hero h1 em { color:#C77D12; }
+  .eeS { color:var(--tx2); font-size:13px; margin:4px 0 6px; line-height:1.5; }
 </style>
 </head>
 <body>
@@ -454,7 +455,11 @@ function table(items, cols, extra){
   items.forEach(function(it,i){ h+='<tr>'+use.map(function(c){ var v=strip(it[c[0]]); if(v.length>160) v=v.slice(0,160)+'…'; return '<td>'+esc(v)+'</td>'; }).join('')+(extra?'<td>'+extra(it,i)+'</td>':'')+'</tr>'; });
   return h+'</table></div>';
 }
-function drugCards(items){
+function eeShort(d){ var raw=String(d&&d.EE_DOC_DATA||'').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g,'\n$1\n').replace(/title="([^"]*)"/g,'>\n$1\n<');
+  var L=raw.split(/\n/).map(function(x){ return strip(x).replace(/^[-·•*\s]*(\(?\d+[).]|[가-하][.)])?\s*/,'').trim(); }).filter(function(x){ return x&&x!=='효능효과'&&!/^\d[\d,\s]*(mg|밀리그램)$/i.test(x); });
+  var t=L.join(' · '); return t.length>90?t.slice(0,90)+'…':t; }
+function fillEE(){ [].slice.call(document.querySelectorAll('.eeS:empty'),0,40).forEach(function(el){ el.textContent=' '; detailOf(el.getAttribute('data-seq')).then(function(d){ var t=eeShort(d); el.textContent=t?'💡 '+t:''; }).catch(function(){ el.textContent=''; }); }); }
+function drugCards(items){ setTimeout(fillEE,0);
   if(!items||!items.length) return '<div class="empty">결과가 없습니다. 제품명을 줄여서 다시 검색해 보세요.</div>';
   return items.map(function(it){
     var tags=[]; if(it.ETC_OTC_CODE) tags.push('<span class="tag blue">'+esc(it.ETC_OTC_CODE)+'</span>');
@@ -462,7 +467,7 @@ function drugCards(items){
     if(it.PRICE) tags.push('<span class="tag">'+won(it.PRICE)+'</span>');
     if(it.ITEM_PERMIT_DATE) tags.push('<span class="tag gray">허가 '+esc(it.ITEM_PERMIT_DATE)+'</span>');
     if(it.CANCEL_NAME && it.CANCEL_NAME!=='정상') tags.push('<span class="tag bad">'+esc(it.CANCEL_NAME)+'</span>');
-    return '<div class="dcard" data-seq="'+esc(it.ITEM_SEQ)+'"><div class="ico">💊</div><div class="bd"><div class="nm">'+esc(it.ITEM_NAME)+'</div><div class="en">'+esc(it.ENTP_NAME)+'</div>'+(it.MAIN_ITEM_INGR?'<div class="ing">'+esc(strip(it.MAIN_ITEM_INGR))+'</div>':'')+'<div class="tags">'+tags.join('')+'</div>'+'<div class="more">상세 정보 보기 →</div></div>'+favBtn('drug',it.ITEM_NAME,it.ITEM_NAME)+'</div>';
+    return '<div class="dcard" data-seq="'+esc(it.ITEM_SEQ)+'"><div class="ico">💊</div><div class="bd"><div class="nm">'+esc(it.ITEM_NAME)+'</div><div class="en">'+esc(it.ENTP_NAME)+'</div>'+(it.MAIN_ITEM_INGR?'<div class="ing">'+esc(strip(it.MAIN_ITEM_INGR))+'</div>':'')+'<div class="eeS" data-seq="'+esc(it.ITEM_SEQ)+'"></div><div class="tags">'+tags.join('')+'</div>'+'<div class="more">상세 정보 보기 →</div></div>'+favBtn('drug',it.ITEM_NAME,it.ITEM_NAME)+'</div>';
   }).join('');
 }
 /* ---------- 제품 상세 (ARGOS 구성: 핵심정보 + 항목 탭, 같은 창에서 이동) ---------- */
