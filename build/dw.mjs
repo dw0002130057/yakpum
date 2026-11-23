@@ -25,9 +25,19 @@ const shardCache = new Map();
 const shard = async (seq) => { const k = String(Number(String(seq).slice(-3)) % 1000).padStart(3, '0'); if (!shardCache.has(k)) shardCache.set(k, await rd('d/' + k + '.json')); return shardCache.get(k); };
 const map = {};
 let n = 0; const found = new Set();
-for (const r of idx) {
+// 보험코드로 못 찾는 제품(비급여 등)은 대웅 계열 품목 중 제품명 앞부분으로 찾음
+const base = (t) => String(t).replace(/^\(중단\)\s*/, '').replace(/[\s(].*$/, '').replace(/\d.*$/, '').replace(/(정|주|캡슐|크림|연고|시럽|과립|세립|필름|스프레이|구강붕해필름)$/, '');
+const pick = (r) => {
   const edis = String(r[5] || '').split(/[,\s]+/).filter((e) => LIST[e]);
-  if (!edis.length) continue; edis.forEach((e) => found.add(e));
+  if (edis.length) { edis.forEach((e) => found.add(e)); return true; }
+  if (!/대웅/.test(r[2])) return false;
+  const nm = r[1].replace(/\s/g, '');
+  const hit = Object.keys(LIST).filter((e) => { const b = base(LIST[e]).replace(/\s/g, ''); return b.length >= 2 && nm.startsWith(b); });
+  hit.forEach((e) => { found.add(e); }); return hit.length > 0;
+};
+for (const r of idx) {
+  if (r[7] && r[7] !== '정상') continue;
+  if (!pick(r)) continue;
   const d = (await shard(r[0]))[r[0]]; if (!d) continue; n++;
   for (const cd of codesOf(d)) (map[cd] ||= []).push([r[0], r[1].replace(/\(.*$/, ''), r[8] || 0]);
 }
